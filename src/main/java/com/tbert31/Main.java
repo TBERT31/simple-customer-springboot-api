@@ -4,8 +4,10 @@ package com.tbert31;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import java.util.List;
+import java.util.Optional;
 
 
 @SpringBootApplication
@@ -37,16 +39,50 @@ public class Main {
     }
 
     @PostMapping
-    public void addCustomer(@RequestBody NewCustomerRequest request){
-        Customer customer = new Customer();
-        customer.setName(request.name());
-        customer.setEmail(request.email());
-        customer.setAge(request.age());
-        customerRepository.save(customer);
+    public ResponseEntity<String> addCustomer(@RequestBody NewCustomerRequest request) {
+        try {
+            Customer customer = new Customer();
+            customer.setName(request.name());
+            customer.setEmail(request.email());
+            customer.setAge(request.age());
+            customerRepository.save(customer);
+
+            return ResponseEntity.ok("Customer added successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("{\"msg\": \"Error adding customer\"}");
+        }
     }
 
+
     @DeleteMapping("{customerId}")
-    public void deleteCustomer(@PathVariable("customerId") Integer id){
-        customerRepository.deleteById(id);
+    public ResponseEntity<String> deleteCustomer(@PathVariable("customerId") Integer id) {
+        Optional<Customer> optionalCustomer = customerRepository.findById(id);
+
+        if (optionalCustomer.isPresent()) {
+            customerRepository.deleteById(id);
+            return ResponseEntity.ok("Customer deleted successfully");
+        } else {
+            String errorMessage = "Customer with id " + id + " does not exist";
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{\"msg\": \"" + errorMessage + "\"}");
+        }
+    }
+
+
+    @PutMapping("{customerId}")
+    public ResponseEntity<String> updateCustomer(@PathVariable("customerId") Integer id, @RequestBody NewCustomerRequest request){
+        Optional<Customer> optionalCustomer = customerRepository.findById(id);
+
+        if (optionalCustomer.isPresent()) {
+            Customer existingCustomer = optionalCustomer.get();
+            existingCustomer.setName(request.name());
+            existingCustomer.setEmail(request.email());
+            existingCustomer.setAge(request.age());
+            customerRepository.save(existingCustomer);
+
+            return ResponseEntity.ok("Customer updated successfully");
+        } else {
+            String errorMessage = "Customer with id " + id + " does not exist";
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{\"msg\": \"" + errorMessage + "\"}");
+        }
     }
 }
